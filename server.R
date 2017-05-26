@@ -18,6 +18,8 @@ source("NonUnifCorrFunctions.R", local=TRUE)
 
 shinyServer(function(input, output) {
   
+#Output design matrices and explanations:  
+  
   output$xmat <- renderTable({
     if(input$design == 1) Xdes <- SWdesmat2(input$T)
     if(input$design == 2) Xdes <- plleldesmat2(input$T)
@@ -33,28 +35,82 @@ shinyServer(function(input, output) {
   })
   
   
-  
- 
-  
-  output$info2 <- renderText({
-    xy_str <- function(e) {
-      if(is.null(e)) return("NULL\n")
-      paste0("Exponential decay=", round(e$x, 3), " Hooper/Girling alpha =", round(e$y, 3), "\n")
-    }
-    xy_range_str <- function(e) {
-      if(is.null(e)) return("NULL\n")
-      paste0("xmin=", round(e$xmin, 1), " xmax=", round(e$xmax, 1), 
-             " ymin=", round(e$ymin, 1), " ymax=", round(e$ymax, 1))
-    }
-    
-    paste0(
-      "Point 1 (click): ", xy_str(input$plot_click),
-      "Point 2 (double click): ", xy_str(input$plot_dblclick),
-      "Mouse over: ", xy_str(input$plot_hover)
-    )
+  output$text1 <- renderText({ 
+    "Stepped wedge design matrix:"
+  })
+  output$text2 <- renderText({ 
+    "Parallel design matrix:"
+  })
+  output$text3 <- renderText({ 
+    "Parallel w/ baseline design matrix:"
+  })
+  output$text4 <- renderText({ 
+    "CRXO design matrix:"
   })
   
-  output$Contourplot <- renderPlot({
+  
+  
+  output$SWxmat <- renderTable({
+    head(SWdesmat2(input$T), n=input$T)
+  },digits=0)
+  output$pllelxmat <- renderTable({
+    head(plleldesmat2(input$T), n=input$T)
+  },digits=0)
+  output$pllelbxmat <- renderTable({
+    head(pllelbasedesmat2(input$T), n=input$T)
+  },digits=0)
+  output$crxoxmat <- renderTable({
+    head(crxodesmat2(input$T), n=input$T)
+  },digits=0)
+  
+  
+  
+  output$HHrelvarexplan <- renderText({
+    "Relative variances of the treatment effect estimator for each design assuming an exponential decay
+    within-cluster correlation structure for a range of decay parameters, relative to the variance 
+    calculated assuming the Hussey and Hughes model."
+  })
+  
+  output$HGrelvarexplan <- renderText({
+    "Relative variances of the treatment effect estimator for selected design assuming an exponential decay
+    within-cluster correlation structure for a range of decay parameters, relative to the variance 
+    calculated assuming the Hooper/Girling model for a range of alpha parameter values."
+  })
+  
+  output$ExpDecayExplan <- renderText({
+    if(input$select==1){
+      "Variance of the treatment coefficient assuming an exponential decay 
+      between-period correlation structure for a range of decay parameters, 
+      for each of the stepped wedge, parallel with baseline,
+      parallel and cross-over designs, given the user-specified design parameters."
+    }
+    
+    else if(input$select==2){
+      "Relative variances of the treatment coefficient for each design assuming an exponential decay
+      between-period correlation structure for a range of decay parameters, relative to the variance 
+      calculated assuming an exchangeable correlation structure (the Hussey and Hughes model)."
+    }
+    else if(input$select==3){
+      "Design effects for each design, assuming an expoenential decay between-period correlation structure for 
+      a range of decay parameters, given the user-specified design parameters."
+    }
+    else if(input$select==4){
+      "Power to detect the user-specified effect size for each design, assuming an expoenential decay between-period correlation structure for 
+      a range of decay parameters, given the user-specified design parameters."
+    }
+    })  
+  
+  output$Hooperincltext<- renderText({
+    if(input$HooperYN==2){
+      "The quantity corresponding to a model with constant between-period correlation structure
+      is also indicated, for a user-specified value of the constant between-period correlation."
+    }
+    })  
+
+#Create plots   
+ 
+  # Exponential decay versus Hooper/Girling model:
+   output$Contourplot <- renderPlot({
     
     if(input$design == 1) Xdes <- SWdesmat2(input$T)
     if(input$design == 2) Xdes <- plleldesmat2(input$T)
@@ -100,167 +156,11 @@ shinyServer(function(input, output) {
     contourplot
     
   })
-    
 
   
-  
-  
-  output$text1 <- renderText({ 
-    "Stepped wedge design matrix:"
-  })
-  output$text2 <- renderText({ 
-    "Parallel design matrix:"
-  })
-  output$text3 <- renderText({ 
-    "Parallel w/ baseline design matrix:"
-  })
-  output$text4 <- renderText({ 
-    "CRXO design matrix:"
-  })
-  
-  
-  output$HHrelvarplot <- renderPlot({
-    #Generate the design matrices:
-    #at the moment these are only for the designs
-    #in the paper. Want to modify to allow other designs.
-    Xsw <- SWdesmat2(input$T)
-    Xpllel <- plleldesmat2(input$T)
-    Xpllelbase <- pllelbasedesmat2(input$T)
-    Xcrxo <- crxodesmat2(input$T)
-    
-    Xsw <- matrix(data=as.vector(t(Xsw)), nrow=input$nclust*nrow(Xsw), ncol=ncol(Xsw), byrow = TRUE)
-    Xpllel <- matrix(data=as.vector(t(Xpllel)), nrow=input$nclust*nrow(Xpllel), ncol=ncol(Xpllel), byrow = TRUE)
-    Xpllelbase <- matrix(data=as.vector(t(Xpllelbase)), nrow=input$nclust*nrow(Xpllelbase), ncol=ncol(Xpllelbase), byrow = TRUE)
-    Xcrxo <- matrix(data=as.vector(t(Xcrxo)), nrow=input$nclust*nrow(Xcrxo), ncol=ncol(Xcrxo), byrow = TRUE)
-    
-    if((input$T-1)%%2 == 1) { correction <- (input$T)/(input$T-1) }
-    if((input$T-1)%%2 == 0) { correction <- 1}
-    
-    
-    myvars<- data.frame(decay = seq(1,0,-0.01), 
-                        SteppedWedge= simplify2array(lapply(seq(0, 1, 0.01), ExpDecayVar, Xmat = Xsw, m=input$m, rho0=input$rho0)),
-                        Parallel = correction*simplify2array(lapply(seq(0, 1, 0.01), ExpDecayVar, Xmat = Xpllel, m=input$m, rho0=input$rho0)),
-                        ParallelBaseline = correction*simplify2array(lapply(seq(0, 1, 0.01), ExpDecayVar, Xmat = Xpllelbase, m=input$m, rho0=input$rho0)),
-                        CRXO = correction*simplify2array(lapply(seq(0, 1, 0.01), ExpDecayVar,Xmat = Xcrxo, m=input$m, rho0=input$rho0)))
-    
-    myvarsmelt <-melt(myvars, id=c("decay"), measure = c("SteppedWedge", "Parallel","ParallelBaseline","CRXO"), variable.name="Design")
-    
-    
-    
-    constantdecayvar <- c(HooperVar(1-input$rCons, Xsw, input$m, input$rho0),
-                          correction*HooperVar(1-input$rCons, Xpllel, input$m, input$rho0),
-                          correction*HooperVar(1-input$rCons, Xpllelbase, input$m, input$rho0),
-                          correction*HooperVar(1-input$rCons, Xcrxo, input$m, input$rho0))
-    
-    
-      #Compare to a standard H+H design!
-      #There must be a less intensive way to do this!
-      myvarsHH<- data.frame(sw= simplify2array(lapply(rep(1,length(seq(0, 1, 0.01))), ExpDecayVar, Xmat = Xsw, m=input$m, rho0=input$rho0)),
-                            pllel = correction*simplify2array(lapply(rep(1,length(seq(0, 1, 0.01))), ExpDecayVar, Xmat = Xpllel, m=input$m, rho0=input$rho0)),
-                            pllelbase = correction*simplify2array(lapply(rep(1,length(seq(0, 1, 0.01))), ExpDecayVar, Xmat = Xpllelbase, m=input$m, rho0=input$rho0)),
-                            crxo = correction*simplify2array(lapply(rep(1,length(seq(0, 1, 0.01))), ExpDecayVar,Xmat = Xcrxo, m=input$m, rho0=input$rho0)))
-      
-      myvarsmeltHH <-melt(myvarsHH, measure = c("sw", "pllel","pllelbase","crxo"), variable.name="Design")
-      myvarsmelt$value <- myvarsmelt$value/myvarsmeltHH$value
-      
-      constantdecayvar <- constantdecayvar/myvarsHH[1,]
-      
-    
-    
-    myplot <- ggplot(myvarsmelt[myvarsmelt$decay<=input$maxr,], aes(x=decay, y=value, colour=Design, linetype=Design)) +
-      geom_line(size=1.1) +
-      scale_colour_manual(values=c("black", "darkred", "darkblue", "darkgreen"),
-                          labels = c("Stepped wedge", "Parallel", "Parallel with baseline", "CRXO")) +
-      scale_linetype_manual(values=c("solid","dotdash","dotted","dashed"),
-                            labels = c("Stepped wedge", "Parallel", "Parallel with baseline", "CRXO"))+
-      xlab("Decay (1-r)") + ylab("Relative variance") +
-      scale_x_continuous(limits = c(0, input$maxr)) +
-      theme(legend.text=element_text(size=10))+
-      theme(legend.key.size = unit(1.5, "cm")) +
-      theme(legend.position ="bottom")  +
-      theme(legend.text=element_text(size=12)) +  geom_hline(aes(yintercept=1))
-    
-
-    if(input$HooperYN==2) myplot <- myplot + geom_segment(aes(x=0, y=constantdecayvar[1], xend=input$maxr, yend=constantdecayvar[1]), colour="grey", linetype="solid", size=0.5) +
-      geom_point(aes(x=input$rCons, y=constantdecayvar[1]), colour="black", size=2) +
-      geom_segment(aes(x=0, y=constantdecayvar[2], xend=input$maxr, yend=constantdecayvar[2]), colour="grey", linetype="dotdash", size=0.5) +
-      geom_point(aes(x=input$rCons, y=constantdecayvar[2]), colour="darkred", size=2) +
-      geom_segment(aes(x=0, y=constantdecayvar[3], xend=input$maxr, yend=constantdecayvar[3]), colour="grey", linetype="dotted", size=0.5) +
-      geom_point(aes(x=input$rCons, y=constantdecayvar[3]), colour="darkblue",size=2) +
-      geom_segment(aes(x=0, y=constantdecayvar[4], xend=input$maxr, yend=constantdecayvar[4]), colour="grey", linetype="dashed", size=0.5) +
-      geom_point(aes(x=input$rCons, y=constantdecayvar[4]), colour="darkgreen",size=2)
-    
-    myplot 
-   
-  })
-  
-  
-  
-    
-  output$SWxmat <- renderTable({
-    head(SWdesmat2(input$T), n=input$T)
-  },digits=0)
-  output$pllelxmat <- renderTable({
-    head(plleldesmat2(input$T), n=input$T)
-  },digits=0)
-  output$pllelbxmat <- renderTable({
-    head(pllelbasedesmat2(input$T), n=input$T)
-  },digits=0)
-  output$crxoxmat <- renderTable({
-    head(crxodesmat2(input$T), n=input$T)
-  },digits=0)
-  
-  
-  
-  
-  output$HHrelvarexplan <- renderText({
-    "Relative variances of the treatment effect estimator for each design assuming an exponential decay
-      within-cluster correlation structure for a range of decay parameters, relative to the variance 
-    calculated assuming the Hussey and Hughes model."
-  })
-  
-  output$HGrelvarexplan <- renderText({
-    "Relative variances of the treatment effect estimator for selected design assuming an exponential decay
-    within-cluster correlation structure for a range of decay parameters, relative to the variance 
-    calculated assuming the Hooper/Girling model for a range of alpha parameter values."
-  })
-  
-  output$ExpDecayExplan <- renderText({
-    if(input$select==1){
-      "Variance of the treatment coefficient assuming an exponential decay 
-      between-period correlation structure for a range of decay parameters, 
-      for each of the stepped wedge, parallel with baseline,
-      parallel and cross-over designs, given the user-specified design parameters."
-    }
-    
-    else if(input$select==2){
-      "Relative variances of the treatment coefficient for each design assuming an exponential decay
-      between-period correlation structure for a range of decay parameters, relative to the variance 
-      calculated assuming an exchangeable correlation structure (the Hussey and Hughes model)."
-    }
-    else if(input$select==3){
-      "Design effects for each design, assuming an expoenential decay between-period correlation structure for 
-        a range of decay parameters, given the user-specified design parameters."
-    }
-    else if(input$select==4){
-      "Power to detect the user-specified effect size for each design, assuming an expoenential decay between-period correlation structure for 
-        a range of decay parameters, given the user-specified design parameters."
-    }
-    })  
-  
-  output$Hooperincltext<- renderText({
-    if(input$HooperYN==2){
-      "The quantity corresponding to a model with constant between-period correlation structure
-      is also indicated, for a user-specified value of the constant between-period correlation."
-    }
-    })  
-  
-  
-  
+ #Variance, power, design effect for the exponential decay model
   output$varplotlyexp <- renderPlotly({
-    #Generate the design matrices:
-    #at the moment these are only for the designs
-    #in the paper. Want to modify to allow other designs.
+   
     Xsw <- SWdesmat2(input$T)
     Xpllel <- plleldesmat2(input$T)
     Xpllelbase <- pllelbasedesmat2(input$T)
@@ -351,7 +251,7 @@ shinyServer(function(input, output) {
     
   })
   
-  
+  #Comparing the exponential decay model to the Hussey and Hughes model
   output$HHrelvarplot <- renderPlotly({
     #Generate the design matrices:
     Xsw <- SWdesmat2(input$T)

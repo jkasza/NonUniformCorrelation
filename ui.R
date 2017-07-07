@@ -4,10 +4,12 @@
 #    trials", by J Kasza et al.
 # 
 # This file contains the UI for the Shiny app 
+#Update 2017-07-07 to allow users to upload their own design matrix
 ###################################################################
 
 library(shiny)
 library(plotly)
+#useShinyjs()
 
 shinyUI(pageWithSidebar(
   h3("R Shiny App to accompany \"Non-uniform correlation structures\", Kasza et al."),
@@ -18,12 +20,10 @@ shinyUI(pageWithSidebar(
                 max=20,
                 step = 1,
                 value = 4),
-    numericInput("nclust",
-                 "Number of clusters assigned to each treatment sequence:",
-                 min = 1,
-                 max=50,
-                 step = 1,
-                 value = 1),
+    fileInput('file1', 'Upload a design matrix instead:',
+              accept=c('text/plain', '.txt', '.csv')),
+    helpText("The file must be a comma separated .csv or .txt file consisting of 0s and 1s, with a column for each time period. Do not include row names."),
+    actionButton('reset', 'Clear file'),
     numericInput("m",
                  "Number of subjects in each cluster-period, m:",
                  min = 1,
@@ -41,9 +41,7 @@ shinyUI(pageWithSidebar(
                         tags$sup(2),tags$sub("e"), "=1",  " so  &rho;",tags$sub(0), 
                         "=&sigma;",tags$sup(2),tags$sub("CP"), "/(&sigma;",tags$sup(2),tags$sub("CP"), "+", "&sigma;",
                         tags$sup(2),tags$sub("e"), ") =&sigma;",tags$sup(2),tags$sub("CP"), sep=""))),
-    
-   
-    
+    ######################
     conditionalPanel(condition="input.conditionedPanels==1",
                      
                      selectInput("select", label = ("What would you like to calculate?"), 
@@ -59,6 +57,7 @@ shinyUI(pageWithSidebar(
                                    value = 0.2))
                      
     ),
+    
     
     conditionalPanel(condition="input.conditionedPanels==1 | input.conditionedPanels == 2",
                      radioButtons("HooperYN", "Include Hooper/Girling model?",

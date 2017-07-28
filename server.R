@@ -45,23 +45,6 @@ shinyServer(function(input, output, session) {
   })
  
   
-  output$info2 <- renderText({
-    xy_str <- function(e) {
-      if(is.null(e)) return("NULL\n")
-      paste0("Exponential decay=", round(e$x, 3), " Hooper/Girling alpha =", round(e$y, 3), "\n")
-    }
-    xy_range_str <- function(e) {
-      if(is.null(e)) return("NULL\n")
-      paste0("xmin=", round(e$xmin, 1), " xmax=", round(e$xmax, 1), 
-             " ymin=", round(e$ymin, 1), " ymax=", round(e$ymax, 1))
-    }
-    
-    paste0(
-      "Point 1 (click): ", xy_str(input$plot_click),
-      "Point 2 (double click): ", xy_str(input$plot_dblclick),
-      "Mouse over: ", xy_str(input$plot_hover)
-    )
-  })
   
   output$Contourplot <- renderPlot({
     
@@ -69,13 +52,8 @@ shinyServer(function(input, output, session) {
     if(input$design == 2) Xdes <- plleldesmat2(input$T)
     if(input$design == 3) Xdes <- pllelbasedesmat2(input$T)
     if(input$design == 4) Xdes <- crxodesmat2(input$T)
-   # inFile <- input$file1
     if(!is.null(mymatrix$data)) Xdes <-  mymatrix$data
-   # if(!is.null(mymatrix$data)) nclust <- 1
-    #else nclust <- input$nclust
-    
-   # Xdes <- matrix(data=as.vector(t(Xdes)), nrow=nclust*nrow(Xdes), ncol=ncol(Xdes), byrow = TRUE)
-    
+   
     decay<- seq(0,1,0.0025)
     r <- 1-decay
     
@@ -199,24 +177,14 @@ shinyServer(function(input, output, session) {
   
   
   output$varplotlyexp <- renderPlotly({
-    #Generate the design matrices:
-    #at the moment these are only for the designs
-    #in the paper. Want to modify to allow other designs.
-  
-   # inFile <- input$file1
     
-   # if(is.null(inFile)) { 
     if(is.null(mymatrix$data)) { 
     Xsw <- SWdesmat2(input$T)
     Xpllel <- plleldesmat2(input$T)
     Xpllelbase <- pllelbasedesmat2(input$T)
     Xcrxo <- crxodesmat2(input$T)
     
- #   Xsw <- matrix(data=as.vector(t(Xsw)), nrow=input$nclust*nrow(Xsw), ncol=ncol(Xsw), byrow = TRUE)
-#    Xpllel <- matrix(data=as.vector(t(Xpllel)), nrow=input$nclust*nrow(Xpllel), ncol=ncol(Xpllel), byrow = TRUE)
-#    Xpllelbase <- matrix(data=as.vector(t(Xpllelbase)), nrow=input$nclust*nrow(Xpllelbase), ncol=ncol(Xpllelbase), byrow = TRUE)
-#    Xcrxo <- matrix(data=as.vector(t(Xcrxo)), nrow=input$nclust*nrow(Xcrxo), ncol=ncol(Xcrxo), byrow = TRUE)
-    
+
     if((input$T-1)%%2 == 1) { correction <- (input$T)/(input$T-1) }
     if((input$T-1)%%2 == 0) { correction <- 1}
     
@@ -263,11 +231,11 @@ shinyServer(function(input, output, session) {
       
     }
     
-      myvars$SteppedWedge <- round(myvars$SteppedWedge, 4)
-      myvars$Parallel <- round(myvars$Parallel, 4)
-      myvars$ParallelBaseline <- round(myvars$ParallelBaseline, 4)
-      myvars$CRXO <- round(myvars$CRXO, 4)  
-      constantdecayvar <- round(constantdecayvar, 4)
+      myvars$SteppedWedge <- round(myvars$SteppedWedge, 5)
+      myvars$Parallel <- round(myvars$Parallel, 5)
+      myvars$ParallelBaseline <- round(myvars$ParallelBaseline, 5)
+      myvars$CRXO <- round(myvars$CRXO, 5)  
+      constantdecayvar <- round(constantdecayvar, 5)
       
     myplot<- plot_ly(myvars, x = ~decay, y = ~SteppedWedge, name = 'Stepped wedge', type = 'scatter', mode = 'lines',
                           line = list(color = "black", width = 4)) %>%
@@ -315,8 +283,8 @@ shinyServer(function(input, output, session) {
         constantdecayvar <- pnorm( -1.96 + sqrt(1/constantdecayvar)*input$effsize )
       }
       
-      myvars$MyDesign <- round(myvars$MyDesign, 4)
-      constantdecayvar <- round(constantdecayvar, 4)
+      myvars$MyDesign <- round(myvars$MyDesign, 5)
+      constantdecayvar <- round(constantdecayvar, 5)
       
       myplot<- plot_ly(myvars, x = ~decay, y = ~MyDesign, name = 'My design', type = 'scatter', mode = 'lines',
                        line = list(color = "black", width = 4)) %>%
@@ -338,8 +306,7 @@ shinyServer(function(input, output, session) {
   
   output$HHrelvarplot <- renderPlotly({
     
-   # inFile <- input$file1
-   # if(is.null(inFile)) { 
+  
     if(is.null(mymatrix$data)) {
     #Generate the design matrices:
     Xsw <- SWdesmat2(input$T)
@@ -347,11 +314,7 @@ shinyServer(function(input, output, session) {
     Xpllelbase <- pllelbasedesmat2(input$T)
     Xcrxo <- crxodesmat2(input$T)
     
- #   Xsw <- matrix(data=as.vector(t(Xsw)), nrow=input$nclust*nrow(Xsw), ncol=ncol(Xsw), byrow = TRUE)
-#    Xpllel <- matrix(data=as.vector(t(Xpllel)), nrow=input$nclust*nrow(Xpllel), ncol=ncol(Xpllel), byrow = TRUE)
-#    Xpllelbase <- matrix(data=as.vector(t(Xpllelbase)), nrow=input$nclust*nrow(Xpllelbase), ncol=ncol(Xpllelbase), byrow = TRUE)
-#    Xcrxo <- matrix(data=as.vector(t(Xcrxo)), nrow=input$nclust*nrow(Xcrxo), ncol=ncol(Xcrxo), byrow = TRUE)
-    
+
     if((input$T-1)%%2 == 1) { correction <- (input$T)/(input$T-1) }
     if((input$T-1)%%2 == 0) { correction <- 1}
     
@@ -387,11 +350,11 @@ shinyServer(function(input, output, session) {
     constantdecayvar[3] <- constantdecayvar[3]/myvarsHH$pllelbase[1]
     constantdecayvar[4] <- constantdecayvar[4]/myvarsHH$crxo[1]
     
-    myvars$SteppedWedge <- round(myvars$SteppedWedge, 3)
-    myvars$Parallel <- round(myvars$Parallel, 3)
-    myvars$ParallelBaseline <- round(myvars$ParallelBaseline, 3)
-    myvars$CRXO <- round(myvars$CRXO, 3)  
-    constantdecayvar <- round(constantdecayvar, 3)
+    myvars$SteppedWedge <- round(myvars$SteppedWedge, 5)
+    myvars$Parallel <- round(myvars$Parallel, 5)
+    myvars$ParallelBaseline <- round(myvars$ParallelBaseline, 5)
+    myvars$CRXO <- round(myvars$CRXO, 5)  
+    constantdecayvar <- round(constantdecayvar, 5)
     
     myplot<- plot_ly(myvars, x = ~decay, y = ~SteppedWedge, name = 'Stepped wedge', type = 'scatter', mode = 'lines',
                      line = list(color = "black", width = 4)) %>%
@@ -438,8 +401,8 @@ shinyServer(function(input, output, session) {
       
       constantdecayvar[1] <- constantdecayvar[1]/myvarsHH$md[1]
       
-      myvars$MyDesign <- round(myvars$MyDesign, 3)
-      constantdecayvar <- round(constantdecayvar, 3)
+      myvars$MyDesign <- round(myvars$MyDesign, 5)
+      constantdecayvar <- round(constantdecayvar, 5)
       
       myplot<- plot_ly(myvars, x = ~decay, y = ~MyDesign, name = 'My Design', type = 'scatter', mode = 'lines',
                        line = list(color = "black", width = 4)) %>%
